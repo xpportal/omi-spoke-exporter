@@ -36,6 +36,7 @@
     "integration-tests": "concurrently --success \"first\" --kill-others \"ava ./test/integration\" \"yarn test-server\"",
     "update-test-snapshots": "concurrently --success \"first\" --kill-others \"ava -u\" \"yarn test-server\"",
     "storybook": "start-storybook",
+    "deploy": "node -r esm -r @babel/register ./scripts/deploy.js",
     "deploy-storybook": "storybook-to-ghpages"
   },
   "esm": {

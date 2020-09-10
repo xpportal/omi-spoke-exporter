@@ -803,7 +803,7 @@
           "name": "image",
           "props": {
             "src": "https://hubs.local:9090/test-assets/spoke-logo.png",
-            "projection": "360-equirectangular"
+            "projection": ""
           }
         }
       ],

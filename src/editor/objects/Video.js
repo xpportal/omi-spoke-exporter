@@ -7,19 +7,27 @@ import {
   DoubleSide,
   Mesh,
   SphereBufferGeometry,
+  BufferGeometry,
+  BoxBufferGeometry,
   RGBAFormat
 } from "three";
 import { RethrownError } from "../utils/errors";
 import Hls from "hls.js/dist/hls.light";
 import isHLS from "../utils/isHLS";
 import AudioSource from "./AudioSource";
+import bannerFileUrl from "../../assets/banners.glb";
+import bannerScreenFileUrl from "../../assets/banners_screen.glb";
+import { GLTFLoader } from "../gltf/GLTFLoader";
 
 export const VideoProjection = {
   Flat: "flat",
+  Banner: "banner",
+  BannerScreen: "banner-screen",
   Equirectangular360: "360-equirectangular"
 };
 
 export default class Video extends AudioSource {
+
   constructor(audioListener) {
     super(audioListener, "video");
 
@@ -27,7 +35,8 @@ export default class Video extends AudioSource {
     this._videoTexture.minFilter = LinearFilter;
     this._videoTexture.encoding = sRGBEncoding;
     this._texture = this._videoTexture;
-
+    this.bannerObject = null;
+    this.bannerScreenObject = null;
     const geometry = new PlaneBufferGeometry();
     const material = new MeshBasicMaterial();
     material.map = this._texture;
@@ -100,6 +109,26 @@ export default class Video extends AudioSource {
       geometry = new SphereBufferGeometry(1, 64, 32);
       // invert the geometry on the x-axis so that all of the faces point inward
       geometry.scale(-1, 1, 1);
+    } else if (projection === "banner") {
+      if (this._GLTF) {
+        geometry = this._GLTF.scene.children[0].geometry;
+      } else {
+        geometry = new PlaneBufferGeometry();
+      }
+      // invert the geometry on the x-axis so that all of the faces point inward
+      geometry.scale(.001, .001, .001);
+      material.side = DoubleSide;
+
+    } else if (projection === "banner-screen") {
+      if (this._GLTF_Screen) {
+        geometry = this._GLTF_Screen.scene.children[0].geometry;
+      } else {
+        geometry = new PlaneBufferGeometry();
+      }
+      // invert the geometry on the x-axis so that all of the faces point inward
+      geometry.scale(.001, .001, .001);
+      material.side = DoubleSide;
+
     } else {
       geometry = new PlaneBufferGeometry();
       material.side = DoubleSide;
@@ -126,13 +155,34 @@ export default class Video extends AudioSource {
     this.onResize();
   }
 
+  async loadBanners() {
+    if (this.bannerObject) {
+      return Promise.resolve(this.bannerObject);
+    }
+    const gltf = await new GLTFLoader(bannerFileUrl).loadGLTF();
+    this.bannerObject = gltf;
+    return this.bannerObject;
+  }
+
+  async loadBannersScreen() {
+    if (this.bannerScreenObject) {
+      return Promise.resolve(this.bannerScreenObject);
+    }
+    const bannerScreenGltf = await new GLTFLoader(bannerScreenFileUrl).loadGLTF();
+    this.bannerScreenObject = bannerScreenGltf;
+    return this.bannerScreenObject;
+  }
+
   async load(src, contentType) {
+
+    this.bannerObject = await this.loadBanners();
+    this.bannerObject = await this.loadBannersScreen();
+
     this._mesh.visible = false;
 
     this._texture = await this.loadVideo(src, contentType);
 
     this.onResize();
-
     this.audioSource = this.audioListener.context.createMediaElementSource(this.el);
     this.audio.setNodeSource(this.audioSource);
 

@@ -38,6 +38,8 @@ export default class VideoNode extends EditorNodeMixin(Video) {
     loadAsync(
       (async () => {
         await node.load(src, onError);
+        await node.loadBanners();
+        await node.loadBannersScreen();
         node.controls = controls || false;
         node.autoPlay = autoPlay;
         node.loop = loop;
