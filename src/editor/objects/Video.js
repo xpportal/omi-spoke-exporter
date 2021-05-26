@@ -17,12 +17,16 @@ import isHLS from "../utils/isHLS";
 import AudioSource from "./AudioSource";
 import bannerFileUrl from "../../assets/banners.glb";
 import bannerScreenFileUrl from "../../assets/banners_screen.glb";
+import logoScreenFileUrl from "../../assets/logo_screen.glb";
+import performanceScreenFileUrl from "../../assets/performance_screen.glb";
 import { GLTFLoader } from "../gltf/GLTFLoader";
 
 export const VideoProjection = {
   Flat: "flat",
   Banner: "banner",
   BannerScreen: "banner-screen",
+  PerformanceScreen: "performance-screen",
+  LogoScreen: "logo-screen",
   Equirectangular360: "360-equirectangular"
 };
 
@@ -37,6 +41,8 @@ export default class Video extends AudioSource {
     this._texture = this._videoTexture;
     this.bannerObject = null;
     this.bannerScreenObject = null;
+    this.performanceScreenObject = null;
+    this.logoScreenObject = null;
     const geometry = new PlaneBufferGeometry();
     const material = new MeshBasicMaterial();
     material.map = this._texture;
@@ -110,8 +116,8 @@ export default class Video extends AudioSource {
       // invert the geometry on the x-axis so that all of the faces point inward
       geometry.scale(-1, 1, 1);
     } else if (projection === "banner") {
-      if (this._GLTF) {
-        geometry = this._GLTF.scene.children[0].geometry;
+      if (this.bannerObject) {
+        geometry = this.bannerObject.scene.children[0].geometry;
       } else {
         geometry = new PlaneBufferGeometry();
       }
@@ -120,8 +126,8 @@ export default class Video extends AudioSource {
       material.side = DoubleSide;
 
     } else if (projection === "banner-screen") {
-      if (this._GLTF_Screen) {
-        geometry = this._GLTF_Screen.scene.children[0].geometry;
+      if (this.bannerScreenObject) {
+        geometry = this.bannerScreenObject.scene.children[0].geometry;
       } else {
         geometry = new PlaneBufferGeometry();
       }
@@ -129,6 +135,24 @@ export default class Video extends AudioSource {
       geometry.scale(.001, .001, .001);
       material.side = DoubleSide;
 
+    } else if (projection === "performance-screen") {
+      if (this.performanceScreenObject) {
+        geometry = this.performanceScreenObject.scene.children[0].geometry;
+      } else {
+        geometry = new PlaneBufferGeometry();
+      }
+      // invert the geometry on the x-axis so that all of the faces point inward
+      geometry.scale(.001, .001, .001);
+      material.side = DoubleSide;
+    } else if (projection === "logo-screen") {
+      if (this.logoScreenObject) {
+        geometry = this.logoScreenObject.scene.children[0].geometry;
+      } else {
+        geometry = new PlaneBufferGeometry();
+      }
+      // invert the geometry on the x-axis so that all of the faces point inward
+      geometry.scale(.001, .001, .001);
+      material.side = DoubleSide;
     } else {
       geometry = new PlaneBufferGeometry();
       material.side = DoubleSide;
@@ -173,10 +197,31 @@ export default class Video extends AudioSource {
     return this.bannerScreenObject;
   }
 
+  async loadPerformanceScreen() {
+    if (this.performanceScreenObject) {
+      return Promise.resolve(this.performanceScreenObject);
+    }
+    const bannerScreenGltf = await new GLTFLoader(performanceScreenFileUrl).loadGLTF();
+    this.performanceScreenObject = bannerScreenGltf;
+    return this.performanceScreenObject;
+  }
+
+  async loadLogoScreen() {
+    if (this.logoScreenObject) {
+      return Promise.resolve(this.logoScreenObject);
+    }
+    const bannerScreenGltf = await new GLTFLoader(logoScreenFileUrl).loadGLTF();
+    this.logoScreenObject = bannerScreenGltf;
+    return this.logoScreenObject;
+  }
+
+
   async load(src, contentType) {
 
     this.bannerObject = await this.loadBanners();
-    this.bannerObject = await this.loadBannersScreen();
+    this.bannerScreenObject = await this.loadBannersScreen();
+    this.performanceScreenObject = await this.loadPerformanceScreen();
+    this.logoScreenObject = await this.loadLogoScreen();
 
     this._mesh.visible = false;
 
