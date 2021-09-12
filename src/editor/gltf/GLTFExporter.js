@@ -290,11 +290,11 @@ class GLTFExporter {
 					gltfProperty.extensions[extensionName] = serializedUserData.gltfExtensions[extensionName];
 					this.extensionsUsed[extensionName] = true;
 				}
-				//delete serializedUserData.gltfExtensions;
+
+				delete serializedUserData.gltfExtensions;
 			}
 
 			if (Object.keys(serializedUserData).length > 0) {
-				console.log(serializedUserData);
 				gltfProperty.extras = serializedUserData;
 			}
 		} catch (error) {
@@ -837,17 +837,11 @@ class GLTFExporter {
 		}
 
 		// alphaMode
-		if (material.transparent || material.alphaTest > 0.0) {
-			// Write alphaCutoff if it's non-zero and different from the default (0.5).
-			if (material.alphaTest > 0.0 && material.alphaTest !== 0.5) {
-				gltfMaterial.alphaMode = "MASK";
-				gltfMaterial.alphaCutoff = material.alphaTest;
-			} else {
-				gltfMaterial.alphaMode = "BLEND";
-			}
-		}
-		if (material.reactive) {
-			gltfMaterial.reactive = material.reactive;
+		if (material.transparent) {
+			gltfMaterial.alphaMode = "BLEND";
+		} else if (material.alphaTest > 0.0) {
+			gltfMaterial.alphaMode = "MASK";
+			gltfMaterial.alphaCutoff = material.alphaTest;
 		}
 
 		// doubleSided
@@ -1268,24 +1262,57 @@ class GLTFExporter {
 	}
 
 	/**
+	 * Process camera
+	 * @param  {THREE.Camera} camera Camera to process
+	 * @return {Integer}      Index of the processed mesh in the "camera" array
+	 */
+	processCamera(camera) {
+		if (!this.outputJSON.cameras) {
+			this.outputJSON.cameras = [];
+		}
+
+		const isOrtho = camera.isOrthographicCamera;
+
+		const gltfCamera = {
+			type: isOrtho ? "orthographic" : "perspective"
+		};
+
+		if (isOrtho) {
+			gltfCamera.orthographic = {
+				xmag: camera.right * 2,
+				ymag: camera.top * 2,
+				zfar: camera.far <= 0 ? 0.001 : camera.far,
+				znear: camera.near < 0 ? 0 : camera.near
+			};
+		} else {
+			gltfCamera.perspective = {
+				aspectRatio: camera.aspect,
+				yfov: _Math.degToRad(camera.fov),
+				zfar: camera.far <= 0 ? 0.001 : camera.far,
+				znear: camera.near < 0 ? 0 : camera.near
+			};
+		}
+
+		if (camera.name !== "") {
+			gltfCamera.name = camera.type;
+		}
+
+		this.outputJSON.cameras.push(gltfCamera);
+
+		return this.outputJSON.cameras.length - 1;
+	}
+
+	/**
 	 * Process Object3D node
 	 * @param  {THREE.Object3D} node Object3D to processNode
 	 * @return {Integer}      Index of the node in the nodes list
 	 */
 	processNode(object) {
 		const equalArray = GLTFExporter.Utils.equalArray;
-		// console.log(object.userData);
 
-		// if (object.userData.gltfExtensions.MOZ_hubs_components.video) {
-		// 	console.log(object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc);
-		// }
-		// if (object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc) {
-		// object.reactiveSrc = object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc;
-		// }
 		if (!this.outputJSON.nodes) {
 			this.outputJSON.nodes = [];
 		}
-		// console.log(object);
 
 		const gltfNode = {};
 
@@ -1320,119 +1347,14 @@ class GLTFExporter {
 			gltfNode.name = String(object.name);
 		}
 
-		if (object.userData.gltfExtensions) {
-			if (object.userData.gltfExtensions.MOZ_hubs_components) {
-				if (object.userData.gltfExtensions.MOZ_hubs_components.video) {
-					//console.log(object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc);
-					gltfNode.reactiveSrc = object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc;
-				}
-			}
-		}
-
 		if (object.isMesh || object.isLine || object.isPoints) {
 			const mesh = this.processMesh(object);
 
 			if (mesh !== null) {
 				gltfNode.mesh = mesh;
 			}
-		}
-
-		if (object.isSkinnedMesh) {
-			this.skins.push(object);
-		}
-
-		if (object.children.length > 0) {
-			const children = [];
-
-			for (let i = 0, l = object.children.length; i < l; i++) {
-				const child = object.children[i];
-
-				if (child.visible || this.options.onlyVisible === false) {
-					const node = this.processNode(child);
-
-					if (node !== null) {
-						children.push(node);
-					}
-				}
-			}
-
-			if (children.length > 0) {
-				gltfNode.children = children;
-			}
-		}
-
-		this.serializeUserData(object, gltfNode);
-
-		this.outputJSON.nodes.push(gltfNode);
-
-		const nodeIndex = this.outputJSON.nodes.length - 1;
-		this.nodeMap.set(object, nodeIndex);
-
-		return nodeIndex;
-	}
-
-	/**
-	 * Process Scene
-	 * @param  {Scene} node Scene to process
-	 */
-	processScene(scene) {
-		if (!this.outputJSON.scenes) {
-			this.outputJSON.scenes = [];
-			this.outputJSON.scene = 0;
-		}
-
-		const gltfScene = {
-			nodes: []
-		};
-
-		if (scene.name !== "") {
-			gltfScene.name = scene.name;
-		}
-
-		this.outputJSON.scenes.push(gltfScene);
-
-		const nodes = [];
-
-		for (let i = 0, l = scene.children.length; i < l; i++) {
-			const child = scene.children[i];
-
-			if (child.visible || this.options.onlyVisible === false) {
-				const node = this.processNode(child);
-
-				if (node !== null) {
-					nodes.push(node);
-				}
-			}
-		}
-
-		if (nodes.length > 0) {
-			gltfScene.nodes = nodes;
-		}
-
-		this.serializeUserData(scene, gltfScene);
-
-		return this.outputJSON.scenes.length - 1;
-	}
-
-	processInput(input) {
-		input = input instanceof Array ? input : [input];
-
-		const objectsWithoutScene = [];
-
-		for (let i = 0; i < input.length; i++) {
-			if (input[i] instanceof Scene) {
-				this.processScene(input[i]);
-			} else {
-				objectsWithoutScene.push(input[i]);
-			}
-		}
-
-		if (objectsWithoutScene.length > 0) {
-			this.processObjects(objectsWithoutScene);
-		}
-
-		for (let i = 0; i < this.skins.length; ++i) {
-			this.processSkin(this.skins[i]);
+		} else if (object.isCamera) {
+			gltfNode.camera = this.processCamera(object);
 		}
 
 		for (let i = 0; i < this.options.animations.length; ++i) {

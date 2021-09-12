@@ -6,7 +6,8 @@ import MeshCombinationGroup from "../MeshCombinationGroup";
 import GroupNode from "./GroupNode";
 import getNodeWithUUID from "../utils/getNodeWithUUID";
 import serializeColor from "../utils/serializeColor";
-import { DistanceModelType } from "../objects/AudioSource";
+import { DistanceModelType } from "../objects/AudioParams";
+import traverseFilteredSubtrees from "../utils/traverseFilteredSubtrees";
 
 // Migrate v1 spoke scene to v2
 function migrateV1ToV2(json) {
@@ -138,6 +139,120 @@ function migrateV3ToV4(json) {
   return json;
 }
 
+const combineComponents = ["gltf-model", "kit-piece"];
+
+function migrateV4ToV5(json) {
+  json.version = 5;
+
+  for (const entityId in json.entities) {
+    if (!Object.prototype.hasOwnProperty.call(json.entities, entityId)) continue;
+
+    const entity = json.entities[entityId];
+
+    if (!entity.components) {
+      continue;
+    }
+
+    const animationComponent = entity.components.find(c => c.name === "loop-animation");
+
+    if (animationComponent) {
+      // Prior to V5 animation clips were stored in activeClipIndex as an integer
+      const { activeClipIndex } = animationComponent.props;
+      delete animationComponent.props.activeClipIndex;
+      // In V5+ activeClipIndices stores an array of integers. It may be undefined if migrating from a legacy scene where the
+      // clip property stores the animation clip name. We can't migrate this here so we do it in ModelNode and KitPieceNode.
+      animationComponent.props.activeClipIndices = activeClipIndex !== undefined ? [activeClipIndex] : [];
+    }
+
+    const hasCombineComponent = entity.components.find(c => combineComponents.indexOf(c.name) !== -1);
+
+    if (hasCombineComponent) {
+      entity.components.push({
+        name: "combine",
+        props: {}
+      });
+    }
+  }
+
+  return json;
+}
+
+function migrateV5ToV6(json) {
+  json.version = 6;
+
+  for (const entityId in json.entities) {
+    if (!Object.prototype.hasOwnProperty.call(json.entities, entityId)) continue;
+
+    const entity = json.entities[entityId];
+
+    if (!entity.components) {
+      continue;
+    }
+
+    const audioComponent = entity.components.find(c => c.name === "audio");
+
+    if (audioComponent) {
+      // Prior to V6 audio parameters where part of the audio node, now they have been refactored to the audio-params component
+      entity.components.push({
+        name: "audio-params",
+        props: {
+          audioType: audioComponent.props["audioType"],
+          gain: audioComponent.props["volume"],
+          distanceModel: audioComponent.props["distanceModel"],
+          rolloffFactor: audioComponent.props["rolloffFactor"],
+          refDistance: audioComponent.props["refDistance"],
+          maxDistance: audioComponent.props["maxDistance"],
+          coneInnerAngle: audioComponent.props["coneInnerAngle"],
+          coneOuterAngle: audioComponent.props["coneOuterAngle"],
+          coneOuterGain: audioComponent.props["coneOuterGain"]
+        }
+      });
+
+      delete audioComponent.props["audioType"];
+      delete audioComponent.props["volume"];
+      delete audioComponent.props["distanceModel"];
+      delete audioComponent.props["rolloffFactor"];
+      delete audioComponent.props["refDistance"];
+      delete audioComponent.props["maxDistance"];
+      delete audioComponent.props["coneInnerAngle"];
+      delete audioComponent.props["coneOuterAngle"];
+      delete audioComponent.props["coneOuterGain"];
+    }
+
+    const videoComponent = entity.components.find(c => c.name === "video");
+
+    if (videoComponent) {
+      // Prior to V6 audio parameters where part of the audio node, now they have been refactored to the audio-params component
+      entity.components.push({
+        name: "audio-params",
+        props: {
+          audioType: videoComponent.props["audioType"],
+          gain: videoComponent.props["volume"],
+          distanceModel: videoComponent.props["distanceModel"],
+          rolloffFactor: videoComponent.props["rolloffFactor"],
+          refDistance: videoComponent.props["refDistance"],
+          maxDistance: videoComponent.props["maxDistance"],
+          coneInnerAngle: videoComponent.props["coneInnerAngle"],
+          coneOuterAngle: videoComponent.props["coneOuterAngle"],
+          coneOuterGain: videoComponent.props["coneOuterGain"]
+        }
+      });
+
+      delete videoComponent.props["audioType"];
+      delete videoComponent.props["gain"];
+      delete videoComponent.props["distanceModel"];
+      delete videoComponent.props["rolloffFactor"];
+      delete videoComponent.props["refDistance"];
+      delete videoComponent.props["maxDistance"];
+      delete videoComponent.props["coneInnerAngle"];
+      delete videoComponent.props["coneOuterAngle"];
+      delete videoComponent.props["coneOuterGain"];
+    }
+  }
+
+  return json;
+}
+
 export const FogType = {
   Disabled: "disabled",
   Linear: "linear",
@@ -164,6 +279,14 @@ export default class SceneNode extends EditorNodeMixin(Scene) {
 
     if (json.version === 3) {
       json = migrateV3ToV4(json);
+    }
+
+    if (json.version === 4) {
+      json = migrateV4ToV5(json);
+    }
+
+    if (json.version === 5) {
+      json = migrateV5ToV6(json);
     }
 
     const { root, metadata, entities } = json;
@@ -403,7 +526,7 @@ export default class SceneNode extends EditorNodeMixin(Scene) {
 
   serialize() {
     const sceneJson = {
-      version: 4,
+      version: 5,
       root: this.uuid,
       metadata: JSON.parse(JSON.stringify(this.metadata)),
       entities: {
@@ -486,7 +609,11 @@ export default class SceneNode extends EditorNodeMixin(Scene) {
     });
 
     for (const node of nodeList) {
-      node.prepareForExport(ctx);
+      if (node.enabled) {
+        node.prepareForExport(ctx);
+      } else {
+        node.parent.remove(node);
+      }
     }
 
     this.addGLTFComponent("background", {
@@ -575,13 +702,17 @@ export default class SceneNode extends EditorNodeMixin(Scene) {
   getAnimationClips() {
     const animations = [];
 
-    this.traverse(child => {
-      if (child.isNode && child.type === "Model") {
-        const activeClip = child.activeClip;
+    traverseFilteredSubtrees(this, child => {
+      if (!child.isNode) {
+        return;
+      }
 
-        if (activeClip) {
-          animations.push(child.activeClip);
-        }
+      if (!child.enabled) {
+        return false;
+      }
+
+      if (child.type === "Model") {
+        animations.push(...child.clips);
       }
     });
 
@@ -592,18 +723,29 @@ export default class SceneNode extends EditorNodeMixin(Scene) {
     const contentAttributions = [];
     const seenAttributions = new Set();
 
-    this.traverse(obj => {
-      if (!(obj.isNode && obj.type === "Model")) return;
+    traverseFilteredSubtrees(this, obj => {
+      if (!obj.isNode) {
+        return;
+      }
+
+      if (!obj.enabled) {
+        return false;
+      }
+
       const attribution = obj.attribution;
 
       if (!attribution) return;
 
-      if (attribution) {
-        const attributionKey = attribution.url || `${attribution.name}_${attribution.author}`;
-        if (seenAttributions.has(attributionKey)) return;
-        seenAttributions.add(attributionKey);
-        contentAttributions.push(attribution);
-      }
+      const url = attribution.url && attribution.url.trim();
+      const title = attribution.title && attribution.title.trim();
+      const author = attribution.author && attribution.author.trim();
+
+      if (!url && !title && !author) return;
+
+      const attributionKey = url || `${title}_${author}`;
+      if (seenAttributions.has(attributionKey)) return;
+      seenAttributions.add(attributionKey);
+      contentAttributions.push(attribution);
     });
 
     return contentAttributions;
