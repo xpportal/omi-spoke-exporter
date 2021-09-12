@@ -18,7 +18,7 @@ import AudioSource from "./AudioSource";
 import bannerFileUrl from "../../assets/banners.glb";
 import bannerScreenFileUrl from "../../assets/banners_screen.glb";
 import logoScreenFileUrl from "../../assets/logo_screen.glb";
-import performanceScreenFileUrl from "../../assets/performance_screen.glb";
+import performanceScreenFileUrl from "../../assets/pvm_screen.glb";
 import { GLTFLoader } from "../gltf/GLTFLoader";
 
 export const VideoProjection = {
@@ -142,7 +142,7 @@ export default class Video extends AudioSource {
 				geometry = new PlaneBufferGeometry();
 			}
 			// invert the geometry on the x-axis so that all of the faces point inward
-			geometry.scale(.001, .001, .001);
+			geometry.scale(1.4, 1.4, 1.4);
 			material.side = DoubleSide;
 		} else if (projection === "logo-screen") {
 			if (this.logoScreenObject) {

@@ -89,7 +89,7 @@ const getTs = (() => {
 		formData.append("promotion_mode", "with_token");
 
 		try {
-			const res = await fetch(`https://${host}/api/v1/media`, { headers, method: "POST", body: formData });
+			const res = await fetch(`https://${host}/api/v1/media`, { method: "POST", body: formData });
 			const payload = await res.json();
 			const url = new URL(payload.origin);
 			url.searchParams.set("token", payload.meta.access_token);

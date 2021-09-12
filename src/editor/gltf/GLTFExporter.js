@@ -290,11 +290,11 @@ class GLTFExporter {
 					gltfProperty.extensions[extensionName] = serializedUserData.gltfExtensions[extensionName];
 					this.extensionsUsed[extensionName] = true;
 				}
-
-				delete serializedUserData.gltfExtensions;
+				//delete serializedUserData.gltfExtensions;
 			}
 
 			if (Object.keys(serializedUserData).length > 0) {
+				console.log(serializedUserData);
 				gltfProperty.extras = serializedUserData;
 			}
 		} catch (error) {
@@ -1274,14 +1274,13 @@ class GLTFExporter {
 	 */
 	processNode(object) {
 		const equalArray = GLTFExporter.Utils.equalArray;
-		if ("video" === object.userData.gltfExtensions.MOZ_hubs_components.video) {
-			console.log(object.userData);
-		}
+		// console.log(object.userData);
+
 		// if (object.userData.gltfExtensions.MOZ_hubs_components.video) {
 		// 	console.log(object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc);
 		// }
 		// if (object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc) {
-		// 	object.reactiveSrc = object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc;
+		// object.reactiveSrc = object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc;
 		// }
 		if (!this.outputJSON.nodes) {
 			this.outputJSON.nodes = [];
@@ -1319,6 +1318,15 @@ class GLTFExporter {
 		// We don't export empty strings name because it represents no-name in Three.js.
 		if (object.name !== "") {
 			gltfNode.name = String(object.name);
+		}
+
+		if (object.userData.gltfExtensions) {
+			if (object.userData.gltfExtensions.MOZ_hubs_components) {
+				if (object.userData.gltfExtensions.MOZ_hubs_components.video) {
+					//console.log(object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc);
+					gltfNode.reactiveSrc = object.userData.gltfExtensions.MOZ_hubs_components.video.reactiveSrc;
+				}
+			}
 		}
 
 		if (object.isMesh || object.isLine || object.isPoints) {
