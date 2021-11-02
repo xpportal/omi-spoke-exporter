@@ -86,6 +86,7 @@ import ModelNode from "./nodes/ModelNode";
 import VideoNode from "./nodes/VideoNode";
 import ImageNode from "./nodes/ImageNode";
 import AudioNode from "./nodes/AudioNode";
+import OmiAudioEmitter from "./nodes/OmiAudioEmitterNode";
 import LinkNode from "./nodes/LinkNode";
 import AssetManifestSource from "../ui/assets/AssetManifestSource";
 
@@ -1951,6 +1952,11 @@ export default class Editor extends EventEmitter {
       await node.load(url);
     } else if (contentType.startsWith("audio/")) {
       node = new AudioNode(this);
+      this.getSpawnPosition(node.position);
+      this.addObject(node, parent, before);
+      await node.load(url);
+    } else if (contentType.startsWith("omi-audio-emitter/")) {
+      node = new OmiAudioEmitter(this);
       this.getSpawnPosition(node.position);
       this.addObject(node, parent, before);
       await node.load(url);

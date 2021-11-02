@@ -74,7 +74,6 @@ export default class App extends Component {
                 <Switch>
                   {configs.isMoz() && <Route path="/" exact component={LandingPage} />}
                   {!configs.isMoz() && <RedirectRoute path="/" exact to="/projects" />}
-                  <Route path="/whats-new" exact component={WhatsNewPage} />
                   <RedirectRoute path="/new" exact to="/projects" />
                   <Route path="/login" exact component={LoginPage} />
                   <Route path="/logout" exact component={LogoutPage} />

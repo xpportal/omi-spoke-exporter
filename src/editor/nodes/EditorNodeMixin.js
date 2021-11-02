@@ -246,6 +246,7 @@ export default function EditorNodeMixin(Object3DClass) {
 
       if (!this.userData.gltfExtensions.MOZ_hubs_components) {
         this.userData.gltfExtensions.MOZ_hubs_components = {};
+        this.userData.gltfExtensions.OMI_components = {};
       }
 
       if (props !== undefined && typeof props !== "object") {
@@ -266,7 +267,7 @@ export default function EditorNodeMixin(Object3DClass) {
         }
       }
 
-      this.userData.gltfExtensions.MOZ_hubs_components[name] = componentProps;
+      this.userData.gltfExtensions.OMI_components[name] = componentProps;
     }
 
     replaceObject(replacementObject) {

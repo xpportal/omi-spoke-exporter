@@ -68,12 +68,6 @@ export default class LatestUpdate extends Component {
     return (
       <LatestUpdateContainer>
         <StyledLatestUpdate>
-          <Title>Latest Update:</Title>
-          <Date>{latestUpdate.formattedMergedAt}</Date>
-          <Content>{latestUpdate.title}</Content>
-          <ViewMore>
-            <Link to="/whats-new">View More</Link>
-          </ViewMore>
         </StyledLatestUpdate>
       </LatestUpdateContainer>
     );

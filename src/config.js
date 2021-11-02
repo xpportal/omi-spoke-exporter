@@ -45,7 +45,9 @@ import KitPieceNodeEditor from "./ui/properties/KitPieceNodeEditor";
 import SimpleWaterNode from "./editor/nodes/SimpleWaterNode";
 import SimpleWaterNodeEditor from "./ui/properties/SimpleWaterNodeEditor";
 import AudioNode from "./editor/nodes/AudioNode";
+import OmiAudioEmitter from "./editor/nodes/OmiAudioEmitterNode";
 import AudioNodeEditor from "./ui/properties/AudioNodeEditor";
+import OmiAudioEmitterNodeEditor from "./ui/properties/OmiAudioEmitterNodeEditor";
 import ScenePreviewCameraNode from "./editor/nodes/ScenePreviewCameraNode";
 import ScenePreviewCameraNodeEditor from "./ui/properties/ScenePreviewCameraNodeEditor";
 import AudioZoneNode from "./editor/nodes/AudioZoneNode";
@@ -84,6 +86,7 @@ export function createEditor(api, settings) {
   editor.registerNode(ImageNode, ImageNodeEditor);
   editor.registerNode(VideoNode, VideoNodeEditor);
   editor.registerNode(AudioNode, AudioNodeEditor);
+  editor.registerNode(OmiAudioEmitter, OmiAudioEmitterNodeEditor);
   editor.registerNode(SpawnerNode, SpawnerNodeEditor);
   editor.registerNode(TriggerVolumeNode, TriggerVolumeNodeEditor);
   editor.registerNode(LinkNode, LinkNodeEditor);

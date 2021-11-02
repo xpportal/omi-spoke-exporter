@@ -239,6 +239,8 @@ export default class MeshCombinationGroup {
     const combinedMesh = new Mesh(combinedGeometry, originalMesh.material);
     combinedMesh.name = "CombinedMesh";
     combinedMesh.userData.gltfExtensions = {
+      OMI_components: {
+      },
       MOZ_hubs_components: {
         visible: {
           visible: originalMesh.visible

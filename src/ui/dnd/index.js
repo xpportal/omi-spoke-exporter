@@ -7,6 +7,7 @@ export const ItemTypes = {
   Image: "Image",
   Video: "Video",
   Audio: "Audio",
+  OmiAudioEmitter: "OmiAudioEmitter",
   Element: "Element",
   KitPiece: "KitPiece"
 };
@@ -16,6 +17,7 @@ export const AssetTypes = [
   ItemTypes.Image,
   ItemTypes.Video,
   ItemTypes.Audio,
+  ItemTypes.OmiAudioEmitter,
   ItemTypes.Element,
   ItemTypes.KitPiece
 ];

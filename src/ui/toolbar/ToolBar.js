@@ -1,5 +1,6 @@
-import React, { Component } from "react";
+import React, { Component, useContext } from "react";
 import PropTypes from "prop-types";
+import Modal from "react-modal";
 import configs from "../../configs";
 import { showMenu, ContextMenu, MenuItem, SubMenu } from "../layout/ContextMenu";
 import ToolButton from "./ToolButton";
@@ -21,6 +22,12 @@ import styled from "styled-components";
 import styledTheme from "../theme";
 import { InfoTooltip } from "../layout/Tooltip";
 import { Pause } from "styled-icons/fa-solid";
+import ExportProjectDialog from "../dialogs/ExportProjectDialog";
+import Editor from "../../editor/Editor";
+import ProgressDialog from "../dialogs/ProgressDialog";
+import ErrorDialog from "../dialogs/ErrorDialog";
+import { trackEvent } from "../../telemetry";
+import { EditorContext } from "../contexts/EditorContext";
 
 const StyledToolbar = styled.div`
   display: flex;
@@ -206,6 +213,77 @@ const transformSpaceOptions = [
 ];
 
 export default class ToolBar extends Component {
+
+    /**
+   *  Dialog Context
+   */
+
+     showDialog = (DialogComponent, dialogProps = {}) => {
+      this.setState({
+        DialogComponent,
+        dialogProps
+      });
+    };
+  
+    hideDialog = () => {
+      this.setState({
+        DialogComponent: null,
+        dialogProps: {}
+      });
+    };  
+
+  onExportProject = async () => {
+    const options = await new Promise(resolve => {
+      this.showDialog(ExportProjectDialog, {
+        defaultOptions: Object.assign({}, Editor.DefaultExportOptions),
+        onConfirm: resolve,
+        onCancel: resolve
+      });
+    });
+  
+    if (!options) {
+      this.hideDialog();
+      return;
+    }
+  
+    const abortController = new AbortController();
+  
+    this.showDialog(ProgressDialog, {
+      title: "Exporting Project",
+      message: "Exporting project...",
+      cancelable: true,
+      onCancel: () => abortController.abort()
+    });
+  
+    try {
+      const { editor } = this.state;
+      const { glbBlob } = await editor.exportScene(abortController.signal, options);
+      this.hideDialog();
+  
+      const el = document.createElement("a");
+      el.download = editor.scene.name + ".glb";
+      el.href = URL.createObjectURL(glbBlob);
+      document.body.appendChild(el);
+      el.click();
+      document.body.removeChild(el);
+  
+      trackEvent("Export Project as glTF");
+    } catch (error) {
+      if (error.aborted) {
+        this.hideDialog();
+        return;
+      }
+  
+      console.error(error);
+  
+      this.showDialog(ErrorDialog, {
+        title: "Error Exporting Project",
+        message: error.message || "There was an error when exporting the project.",
+        error
+      });
+    }
+  };
+  
   static propTypes = {
     menu: PropTypes.array,
     editor: PropTypes.object,
@@ -219,7 +297,10 @@ export default class ToolBar extends Component {
 
     this.state = {
       editorInitialized: false,
-      menuOpen: false
+      menuOpen: false,
+      editor,
+      DialogComponent: null,
+      dialogProps: {},
     };
   }
 
@@ -359,7 +440,7 @@ export default class ToolBar extends Component {
   };
 
   render() {
-    const { editorInitialized, menuOpen } = this.state;
+    const { editorInitialized, menuOpen, DialogComponent, dialogProps } = this.state;
 
     if (!editorInitialized) {
       return <StyledToolbar />;
@@ -376,6 +457,18 @@ export default class ToolBar extends Component {
 
     return (
       <StyledToolbar>
+      <Modal
+        ariaHideApp={false}
+        isOpen={!!DialogComponent}
+        onRequestClose={this.hideDialog}
+        shouldCloseOnOverlayClick={false}
+        className="Modal"
+        overlayClassName="Overlay"
+      >
+        {DialogComponent && (
+          <DialogComponent onConfirm={this.hideDialog} onCancel={this.hideDialog} {...dialogProps} />
+        )}
+      </Modal>
         <ToolButtons>
           <ToolButton icon={Bars} onClick={this.onMenuSelected} selected={menuOpen} id="menu" />
           <ToolButton
@@ -482,13 +575,8 @@ export default class ToolBar extends Component {
           )}
         </ToolToggles>
         <Spacer />
-        {this.props.isPublishedScene && (
-          <PublishButton onClick={this.props.onOpenScene}>
-            {configs.isMoz() ? "Open in Hubs" : "Open Scene"}
-          </PublishButton>
-        )}
-        <PublishButton id="publish-button" onClick={this.props.onPublish}>
-          {configs.isMoz() ? "Publish to Hubs..." : "Publish Scene..."}
+        <PublishButton id="publish-button" onClick={this.onExportProject}>
+          {configs.isMoz() ? "Publish to Hubs..." : "Export GLB..."}
         </PublishButton>
         <ContextMenu id="menu">
           {this.props.menu.map(menu => {

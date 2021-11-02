@@ -4,6 +4,7 @@ import { BaseSource } from "./sources/index";
 import KitSourcePanel from "./KitSourcePanel";
 import { ItemTypes } from "../dnd";
 import AudioNode from "../../editor/nodes/AudioNode";
+import OmiAudioEmitter from "../../editor/nodes/OmiAudioEmitterNode";
 import ImageNode from "../../editor/nodes/ImageNode";
 import VideoNode from "../../editor/nodes/VideoNode";
 import ModelNode from "../../editor/nodes/ModelNode";
@@ -20,6 +21,7 @@ function hasTags(result, tags) {
 
 const assetTypeToNodeClass = {
   [ItemTypes.Audio]: AudioNode,
+  [ItemTypes.OmiAudioEmitter]: OmiAudioEmitter,
   [ItemTypes.Image]: ImageNode,
   [ItemTypes.Video]: VideoNode,
   [ItemTypes.Model]: ModelNode

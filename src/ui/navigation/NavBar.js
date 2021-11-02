@@ -74,10 +74,7 @@ class NavBar extends Component {
           <nav>
             <NavList>
               <li>
-                <Link to="/whats-new">What&apos;s New</Link>
-              </li>
-              <li>
-                <a href="https://github.com/mozilla/Spoke" rel="noopener noreferrer">
+                <a href="https://github.com/xpportal/Spoke-Exporter" rel="noopener noreferrer">
                   Source
                 </a>
               </li>
@@ -100,7 +97,7 @@ class NavBar extends Component {
         </MiddleContainer>
         <RightContainer>
           <NavList>
-            {this.props.isAuthenticated ? (
+            {/* {this.props.isAuthenticated ? (
               <>
                 <li>
                   <Link to="/projects">Projects</Link>
@@ -113,7 +110,7 @@ class NavBar extends Component {
               <li>
                 <Link to="/login">Login</Link>
               </li>
-            )}
+            )} */}
           </NavList>
         </RightContainer>
       </StyledNavBar>

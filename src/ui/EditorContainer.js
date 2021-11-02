@@ -331,6 +331,110 @@ class EditorContainer extends Component {
     }
   };
 
+  generateNonAdminToolbarMenu = () => {
+    return [
+      {
+        name: "Back to Projects",
+        action: this.onOpenProject
+      },
+      {
+        name: "File",
+        items: [
+          {
+            name: "New Project",
+            action: this.onNewProject
+          },
+          {
+            name: "Save Project",
+            hotkey: `${cmdOrCtrlString} + S`,
+            action: this.onSaveProject
+          },
+          {
+            name: "Save As",
+            action: this.onDuplicateProject
+          },
+          {
+            name: "Export as binary glTF (.glb) ...",
+            action: this.onExportProject
+          },
+          {
+            name: "Import legacy .spoke project",
+            action: this.onImportLegacyProject
+          },
+          {
+            name: "Export legacy .spoke project",
+            action: this.onExportLegacyProject
+          }
+        ]
+      },
+      {
+        name: "Help",
+        items: [
+          {
+            name: "Tutorial",
+            action: () => {
+              const { projectId } = this.props.match.params;
+
+              if (projectId === "tutorial") {
+                trackEvent("Tutorial Start");
+                this.setState({ onboardingContext: { enabled: true } });
+              } else {
+                this.props.history.push("/projects/tutorial");
+              }
+            }
+          },
+          {
+            name: "Keyboard and Mouse Controls",
+            action: () => window.open("https://hubs.mozilla.com/docs/spoke-controls.html")
+          },
+          {
+            name: "Get Support",
+            action: () => this.showDialog(SupportDialog)
+          },
+          {
+            name: "Submit Feedback",
+            action: () => window.open("https://forms.gle/2PAFXKwW1SXdfSK17")
+          },
+          {
+            name: "Report an Issue",
+            action: () => window.open("https://github.com/mozilla/Spoke/issues/new")
+          },
+          {
+            name: "Join us on Discord",
+            action: () => window.open("https://discord.gg/wHmY4nd")
+          },
+          {
+            name: "Terms of Use",
+            action: () => window.open("https://github.com/mozilla/hubs/blob/master/TERMS.md")
+          },
+          {
+            name: "Privacy Notice",
+            action: () => window.open("https://github.com/mozilla/hubs/blob/master/PRIVACY.md")
+          }
+        ]
+      },
+      {
+        name: "Developer",
+        items: [
+          {
+            name: this.state.settingsContext.settings.enableExperimentalFeatures
+              ? "Disable Experimental Features"
+              : "Enable Experimental Features",
+            action: () =>
+              this.updateSetting(
+                "enableExperimentalFeatures",
+                !this.state.settingsContext.settings.enableExperimentalFeatures
+              )
+          }
+        ]
+      },
+      {
+        name: "Submit Feedback",
+        action: () => window.open("https://forms.gle/2PAFXKwW1SXdfSK17")
+      }
+    ];
+  }
+
   generateToolbarMenu = () => {
     return [
       {
@@ -896,8 +1000,10 @@ class EditorContainer extends Component {
 
   render() {
     const { DialogComponent, dialogProps, settingsContext, onboardingContext, editor } = this.state;
+    const isAuthenticated = editor.api.isAuthenticated();
 
     const toolbarMenu = this.generateToolbarMenu();
+    const nonAdminToolbarMenu = this.generateNonAdminToolbarMenu();
     const isPublishedScene = !!this.getSceneId();
 
     return (
@@ -908,13 +1014,22 @@ class EditorContainer extends Component {
               <OnboardingContextProvider value={onboardingContext}>
                 <DndProvider backend={HTML5Backend}>
                   <DragLayer />
+                  { isAuthenticated ?                    
                   <ToolBar
                     menu={toolbarMenu}
                     editor={editor}
                     onPublish={this.onPublishProject}
                     isPublishedScene={isPublishedScene}
                     onOpenScene={this.onOpenScene}
+                  /> : 
+                  <ToolBar
+                    menu={nonAdminToolbarMenu}
+                    editor={editor}
+                    onPublish={this.onPublishProject}
+                    isPublishedScene={isPublishedScene}
+                    onOpenScene={this.onOpenScene}
                   />
+                  }
                   <WorkspaceContainer>
                     <Resizeable axis="x" initialSizes={[0.7, 0.3]} onChange={this.onResize}>
                       <ViewportPanelContainer />
