@@ -21,25 +21,29 @@ export default class OmiAudioEmitterNode extends EditorNodeMixin(AudioSource) {
     const node = await super.deserialize(editor, json);
 
     const audioComp = json.components.find(c => c.name === "omi-audio-emitter");
-    const { src, controls, autoPlay, loop } = audioComp.props;
-    const audioParamsComp = json.components.find(c => c.name === "audio-params");
-    const {
-      audioType,
-      gain,
-      distanceModel,
-      rolloffFactor,
-      refDistance,
-      maxDistance,
-      coneInnerAngle,
-      coneOuterAngle,
-      coneOuterGain
-    } = audioParamsComp.props;
+    const { 
+            src, 
+            controls,
+            autoPlay,
+            nodeName,
+            loop,
+            audioType,
+            gain,
+            distanceModel,
+            rolloffFactor,
+            refDistance,
+            maxDistance,
+            coneInnerAngle,
+            coneOuterAngle,
+            coneOuterGain      
+          } = audioComp.props;
 
     loadAsync(
       (async () => {
         await node.load(src, onError);
         node.controls = controls || false;
         node.autoPlay = autoPlay;
+        node.name = nodeName;
         node.loop = loop;
         node.audioType = audioType;
         node.gain = gain;
@@ -60,6 +64,7 @@ export default class OmiAudioEmitterNode extends EditorNodeMixin(AudioSource) {
     super(editor, editor.audioListener);
 
     this._canonicalUrl = "";
+    this._nodeName = "";
     this._autoPlay = true;
     this.controls = true;
 
@@ -78,6 +83,14 @@ export default class OmiAudioEmitterNode extends EditorNodeMixin(AudioSource) {
   }
 
   set src(value) {
+    this.load(value).catch(console.error);
+  }
+
+  get nameVal() {
+    return this._nodeName;
+  }
+
+  set nameVal(value) {
     this.load(value).catch(console.error);
   }
 
@@ -171,53 +184,32 @@ export default class OmiAudioEmitterNode extends EditorNodeMixin(AudioSource) {
     return this;
   }
 
-  serialize() {
-    return super.serialize({
-      "omi-audio-emitter": {
-        src: this._canonicalUrl,
-        controls: this.controls,
-        autoPlay: this.autoPlay,
-        loop: this.loop
-      },
-      "audio-params": {
-        audioType: this.audioType,
-        gain: this.gain,
-        distanceModel: this.distanceModel,
-        rolloffFactor: this.rolloffFactor,
-        refDistance: this.refDistance,
-        maxDistance: this.maxDistance,
-        coneInnerAngle: this.coneInnerAngle,
-        coneOuterAngle: this.coneOuterAngle,
-        coneOuterGain: this.coneOuterGain
-      }
-    });
-  }
-
   prepareForExport() {
     super.prepareForExport();
     this.remove(this.helper);
     this.addGLTFComponent("omi-audio-emitter", {
-      src: this._canonicalUrl,
-      controls: this.controls,
-      autoPlay: this.autoPlay,
-      loop: this.loop
-    });
-
-    // We don't want artificial distance based attenuation to be applied to stereo audios
-    // so we set the distanceModel and rolloffFactor so the attenuation is always 1.
-    this.addGLTFComponent("audio-params", {
-      audioType: this.audioType,
-      gain: this.gain,
-      distanceModel: this.audioType === AudioType.Stereo ? DistanceModelType.Linear : this.distanceModel,
-      rolloffFactor: this.audioType === AudioType.Stereo ? 0 : this.rolloffFactor,
-      refDistance: this.refDistance,
-      maxDistance: this.maxDistance,
-      coneInnerAngle: this.coneInnerAngle,
-      coneOuterAngle: this.coneOuterAngle,
-      coneOuterGain: this.coneOuterGain
-    });
-    this.addGLTFComponent("networked", {
-      id: this.uuid
+      "audioSources": [
+        {
+          src: this._canonicalUrl,
+          name: this.name,
+          controls: this.controls,
+          autoPlay: this.autoPlay,
+          loop: this.loop    
+        }
+      ],
+      "audioEmitters": [
+        {
+          audioType: this.audioType,
+          gain: this.gain,
+          distanceModel: this.audioType === AudioType.Stereo ? DistanceModelType.Linear : this.distanceModel,
+          rolloffFactor: this.audioType === AudioType.Stereo ? 0 : this.rolloffFactor,
+          refDistance: this.refDistance,
+          maxDistance: this.maxDistance,
+          coneInnerAngle: this.coneInnerAngle,
+          coneOuterAngle: this.coneOuterAngle,
+          coneOuterGain: this.coneOuterGain    
+        }
+      ]
     });
     this.replaceObject();
   }

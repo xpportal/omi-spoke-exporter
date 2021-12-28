@@ -246,7 +246,11 @@ export default function EditorNodeMixin(Object3DClass) {
 
       if (!this.userData.gltfExtensions.MOZ_hubs_components) {
         this.userData.gltfExtensions.MOZ_hubs_components = {};
-        this.userData.gltfExtensions.OMI_components = {};
+      }
+      if (!this.userData.gltfExtensions.OMI_audio_emitter) {
+        if(name === 'omi-audio-emitter') {
+          this.userData.gltfExtensions.OMI_audio_emitter = {};
+        }
       }
 
       if (props !== undefined && typeof props !== "object") {
@@ -267,7 +271,13 @@ export default function EditorNodeMixin(Object3DClass) {
         }
       }
 
-      this.userData.gltfExtensions.OMI_components[name] = componentProps;
+      if( name === 'omi-audio-emitter'){
+        // Iniitalize the audioSources object
+        this.userData.gltfExtensions.OMI_audio_emitter = componentProps;
+        return;
+      }
+
+      this.userData.gltfExtensions.MOZ_hubs_components[name] = componentProps;
     }
 
     replaceObject(replacementObject) {
