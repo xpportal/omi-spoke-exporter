@@ -11,7 +11,7 @@ example/imported/
 certs/
 .env
 .ret.credentials
-*.tar.gz
+_build.tar.gz
 release/spoke-linux
 release/spoke-macos
 release/spoke-win.exe
